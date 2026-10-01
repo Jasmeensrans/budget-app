@@ -1,0 +1,11 @@
+node_modules
+dist
+*.local
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea
+npm-debug.log*
+
+# Personal financial data: never commit
+private/

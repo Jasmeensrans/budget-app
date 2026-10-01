@@ -1,0 +1,73 @@
+/* Design tokens from the style guide (canvas: "Style guide").
+   Change a value here and every screen follows. */
+:root {
+  /* Brand green */
+  --green-900: #00341e;
+  --green-800: #004f2d; /* brand */
+  --green-700: #1a6b45;
+  --green-500: #3e9467;
+  --green-300: #9ccfb1;
+  --green-100: #ddf0e3;
+  --green-50: #f1f9f3;
+
+  /* Neutrals */
+  --ink: #2f2e2b;
+  --text-2: #6b6962;
+  --text-3: #74716a;
+  --border: #eceae4;
+  --border-strong: #e3e0d9;
+  --divider: #f1efea;
+  --hover: #f4f2ee;
+  --surface: #f6f5f1;
+  --page: #fbfaf7;
+  --card: #ffffff;
+
+  /* Status */
+  --good-fg: var(--green-800);
+  --good-bg: var(--green-100);
+  --over-fg: #b4441f;
+  --over-bg: #fce9e1;
+  --over-bar: #d9623b;
+  --warn-fg: #6e5212;
+  --warn-bg: #fbf0cf;
+  --info-fg: #22507a;
+  --info-bg: #dceaf7;
+
+  /* Type */
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  --text-hero: 48px;
+  --text-title: 36px;
+  --text-section: 20px;
+  --text-card: 16px;
+  --text-body: 15px;
+  --text-label: 13px;
+  --text-caption: 12px;
+
+  /* Radius */
+  --radius-tag: 5px;
+  --radius-control: 10px;
+  --radius-card: 16px;
+  --radius-dialog: 16px;
+  --radius-pill: 999px;
+
+  /* Spacing (4px grid) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  /* Elevation: flat by default, shadows only for floating things */
+  --shadow-card: 0 1px 2px rgba(47, 46, 43, 0.04);
+  --shadow-pop: 0 12px 32px rgba(35, 34, 31, 0.14), 0 2px 6px rgba(35, 34, 31, 0.06);
+  --focus-ring: 0 0 0 2px var(--page), 0 0 0 4px var(--green-500);
+
+  /* Layout */
+  --sidebar-w: 240px;
+  --tabbar-h: 72px;
+  --content-max: 1120px;
+}
