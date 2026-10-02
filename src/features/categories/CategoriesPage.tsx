@@ -18,7 +18,7 @@ import { currentMonthKey } from '../../lib/months';
 
 const ICON_CHOICES: IconName[] = [
   'cart', 'utensils', 'coffee', 'car', 'bag', 'ticket', 'bolt', 'heart', 'home', 'globe',
-  'dollar', 'gift', 'sparkle', 'briefcase', 'phone', 'wrench', 'gauge', 'refresh', 'receipt', 'tag',
+  'dollar', 'gift', 'sparkle', 'briefcase', 'phone', 'dumbbell', 'gauge', 'refresh', 'receipt', 'tag',
 ];
 const COLOR_CHOICES = Object.keys(CATEGORY_COLORS) as CategoryColorName[];
 

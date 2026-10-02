@@ -33,7 +33,7 @@ const PATHS = {
   sparkle: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z',
   briefcase: 'M4 8h16v11H4zM9 8V5.5h6V8M4 13h16',
   phone: 'M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM11 18h2',
-  wrench: 'M3 10h18v9H3zM8 10V7a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3M3 14h18',
+  dumbbell: 'M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11',
   gauge: 'M4 17a8 8 0 1 1 16 0M12 17l4-5M4 17h16',
   // UI
   pencil: 'M15 4l5 5M17.5 6.5 7 17l-3 1 1-3L15.5 4.5',
