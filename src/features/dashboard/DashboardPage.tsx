@@ -59,6 +59,9 @@ export function DashboardPage() {
     // Only compare with last month if the data covers it from (nearly) the start.
     const earliest = transactions.reduce((min, t) => (t.date < min ? t.date : min), '9999-12-31');
     const prevHasData = earliest <= dateInMonth(prev, 7);
+    // Comparing an empty month (e.g. the 1st, before anything is entered) with last month is just noise.
+    const hasThisMonth = transactions.some((t) => t.date >= monthStart(month) && t.date <= monthEnd(month));
+    const compare = prevHasData && hasThisMonth;
     const income = periodTotals(transactions, kindOf, monthStart(month), monthEnd(month)).incomeCents;
     const statuses = budgets.map((b) => budgetStatus(b, transactions, contributions, month));
     const prevSameDate = dateInMonth(prev, Math.min(throughDay, prevDays));
@@ -77,6 +80,8 @@ export function DashboardPage() {
       income,
       diff: spent - prevSameDay,
       prevHasData,
+      hasThisMonth,
+      compare,
       overview,
       statuses,
       byCategory,
@@ -105,7 +110,7 @@ export function DashboardPage() {
           <MonthSwitcher month={month} onChange={setMonth} />
           <h1 className="page-header__title">{view.isCurrent ? greeting() : formatMonthName(month)}</h1>
           <p className="page-header__subtitle">
-            {view.prevHasData ? (
+            {view.compare ? (
               <>
                 You've spent{' '}
                 <strong className={view.diff <= 0 ? 'text-good' : 'text-over'}>
@@ -113,6 +118,12 @@ export function DashboardPage() {
                 </strong>{' '}
                 than {view.isCurrent ? 'this time' : 'in'} last month.{view.diff <= 0 ? ' Nice pace.' : ''}
               </>
+            ) : !view.hasThisMonth ? (
+              view.isCurrent ? (
+                `Nothing spent in ${formatMonthName(month)} yet.`
+              ) : (
+                `No transactions in ${formatMonthName(month)}.`
+              )
             ) : (
               `Here's how ${formatMonthName(month)} is going.`
             )}
@@ -132,7 +143,7 @@ export function DashboardPage() {
       <section className="grid-3" aria-label={`${formatMonthName(month)} at a glance`}>
         <StatCard label="Spent so far" icon="wallet" badge="green">
           <span className="stat__value">{formatCents(view.spent, { whole: true })}</span>
-          {view.prevHasData && (
+          {view.compare && (
             <span>
               <Pill tone={view.diff <= 0 ? 'good' : 'over'}>
                 <Icon name="arrowDown" size={13} strokeWidth={2.4} className={view.diff > 0 ? 'flip' : undefined} />

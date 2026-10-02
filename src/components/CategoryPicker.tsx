@@ -14,6 +14,12 @@ interface CategoryPickerProps {
   label: string;
 }
 
+/**
+ * On phones, focusing the search box would pop the keyboard over the list you're about to
+ * tap, so only desktops focus it automatically.
+ */
+const isTouchScreen = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+
 /** A category tag that opens a searchable list to change or remove the category. */
 export function CategoryPicker({ value, onChange, label }: CategoryPickerProps) {
   const categories = useCollection('categories');
@@ -77,7 +83,12 @@ export function CategoryPicker({ value, onChange, label }: CategoryPickerProps) 
           <label className="picker__search">
             <Icon name="search" size={15} />
             <span className="sr-only">Search categories</span>
-            <input autoFocus placeholder="Search categories" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <input
+              autoFocus={!isTouchScreen}
+              placeholder="Search categories"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
           </label>
           <ul id={listId} role="listbox" aria-label="Categories" className="picker__list">
             {matches.map((c) => (

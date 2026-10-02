@@ -1399,3 +1399,22 @@
     flex: 1;
   }
 }
+
+/*
+ * iPhone Safari zooms the page when you focus a field whose text is under 16px.
+ * On phones and touch screens, every small field is bumped to 16px so that never happens.
+ * The big amount field (32px) isn't listed, so it keeps its size.
+ */
+@media (max-width: 767px), (pointer: coarse) {
+  .input,
+  .textarea,
+  .search input,
+  .picker__search input,
+  .money-input input,
+  .month-select select,
+  .review-row__select select,
+  .rate-form .input,
+  .account-form .input {
+    font-size: 16px;
+  }
+}
