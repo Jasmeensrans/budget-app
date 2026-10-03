@@ -292,6 +292,125 @@ export async function restoreBackup(backup: unknown) {
   inFlight.clear();
 }
 
+export interface MergeResult {
+  accounts: number;
+  categories: number;
+  rules: number;
+  transactions: number;
+  skippedTransactions: number;
+}
+
+/**
+ * Adds a file's data to what's already here, without deleting anything (unlike restore).
+ * - Accounts and categories are matched by name; only missing ones are created.
+ * - Rules are added unless an identical rule (same conditions and category) exists.
+ *   Their `order` places them among existing rules (e.g. 17.5 sits between 17 and 18),
+ *   then all rules are renumbered.
+ * - A transaction is skipped if you already have one with the same date, amount and bank text
+ *   (counted one for one, so identical same-day purchases are kept).
+ * - Budgets, contributions and settings in the file are ignored.
+ */
+export async function mergeBackup(backup: unknown): Promise<MergeResult> {
+  const data = backup as { collections?: Record<string, unknown> };
+  if (!data || typeof data !== 'object' || !data.collections || typeof data.collections !== 'object') {
+    throw new Error('This file isn’t a My Budget data file.');
+  }
+  const col = data.collections as {
+    accounts?: Account[];
+    categories?: Category[];
+    rules?: Rule[];
+    transactions?: Transaction[];
+  };
+  const byName = <T extends { name: string }>(items: T[], name: string) =>
+    items.find((i) => i.name.trim().toLowerCase() === name.trim().toLowerCase());
+
+  // Accounts
+  const accountIds = new Map<string, string>();
+  let accountsAdded = 0;
+  for (const a of col.accounts ?? []) {
+    const existing = byName(current('accounts'), a.name);
+    if (existing) accountIds.set(a.id, existing.id);
+    else {
+      const created = await repo.create('accounts', { name: a.name, currency: a.currency, kind: a.kind });
+      accountIds.set(a.id, created.id);
+      accountsAdded++;
+    }
+  }
+
+  // Categories
+  const categoryIds = new Map<string, string>();
+  let categoriesAdded = 0;
+  for (const c of col.categories ?? []) {
+    const existing = byName(current('categories'), c.name);
+    if (existing) categoryIds.set(c.id, existing.id);
+    else {
+      const created = await repo.create('categories', { name: c.name, color: c.color, icon: c.icon, kind: c.kind ?? 'spending' });
+      categoryIds.set(c.id, created.id);
+      categoriesAdded++;
+    }
+  }
+
+  // Rules
+  const ruleKey = (r: Pick<Rule, 'conditions' | 'categoryId'>) => JSON.stringify([r.categoryId, r.conditions]);
+  const existingRules = current('rules');
+  const known = new Set(existingRules.map(ruleKey));
+  const createdRules: Rule[] = [];
+  for (const r of [...(col.rules ?? [])].sort((a, b) => a.order - b.order)) {
+    const categoryId = categoryIds.get(r.categoryId);
+    if (!categoryId) continue;
+    const candidate = { conditions: r.conditions, categoryId };
+    if (known.has(ruleKey(candidate))) continue;
+    known.add(ruleKey(candidate));
+    createdRules.push(await repo.create('rules', { ...candidate, order: r.order }));
+  }
+  if (createdRules.length) {
+    const all = sortRules([...existingRules.filter((r) => !createdRules.some((c) => c.id === r.id)), ...createdRules]);
+    await repo.updateMany(
+      'rules',
+      all.map((r, i) => ({ id: r.id, patch: { order: i + 1 } })),
+    );
+  }
+
+  // Transactions
+  const fingerprint = (t: Pick<Transaction, 'date' | 'amountCents' | 'rawDescription' | 'description'>) =>
+    `${t.date}|${t.amountCents}|${(t.rawDescription ?? t.description).toLowerCase()}`;
+  // Count what's already here, so two identical purchases on the same day stay two:
+  // each existing copy cancels exactly one copy in the file.
+  const existing = new Map<string, number>();
+  for (const t of current('transactions')) existing.set(fingerprint(t), (existing.get(fingerprint(t)) ?? 0) + 1);
+  const toAdd: NewDoc<Transaction>[] = [];
+  let skipped = 0;
+  for (const t of col.transactions ?? []) {
+    const left = existing.get(fingerprint(t)) ?? 0;
+    if (left > 0) {
+      existing.set(fingerprint(t), left - 1);
+      skipped++;
+      continue;
+    }
+    toAdd.push({
+      date: t.date,
+      amountCents: t.amountCents,
+      description: t.description,
+      rawDescription: t.rawDescription ?? null,
+      categoryId: t.categoryId ? (categoryIds.get(t.categoryId) ?? null) : null,
+      accountId: t.accountId ? (accountIds.get(t.accountId) ?? null) : null,
+      original: t.original ?? null,
+      note: t.note ?? '',
+      source: t.source ?? 'import',
+      importId: t.importId ?? null,
+    });
+  }
+  if (toAdd.length) await repo.createMany('transactions', toAdd);
+
+  return {
+    accounts: accountsAdded,
+    categories: categoriesAdded,
+    rules: createdRules.length,
+    transactions: toAdd.length,
+    skippedTransactions: skipped,
+  };
+}
+
 /** What this browser has saved locally (from before signing in). */
 export async function readLocalData() {
   const local = createLocalRepository();

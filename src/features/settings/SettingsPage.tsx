@@ -7,6 +7,7 @@ import { useToast } from '../../components/Toast';
 import { signOut, useAuth } from '../../data/auth';
 import {
   copyLocalDataToCloud,
+  mergeBackup,
   readLocalData,
   deleteAllData,
   exportAll,
@@ -30,6 +31,7 @@ export function SettingsPage() {
   const settings = useSettings();
   const [busy, setBusy] = useState(false);
   const restoreRef = useRef<HTMLInputElement>(null);
+  const mergeRef = useRef<HTMLInputElement>(null);
   const auth = useAuth();
 
   // Data saved in this browser before signing in, offered for a one-time move.
@@ -92,6 +94,30 @@ export function SettingsPage() {
       toast(`Restored ${file.name}`);
     } catch (err) {
       toast(err instanceof Error ? err.message : 'That file couldn’t be restored.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleMerge(file: File) {
+    const ok = await confirm({
+      title: `Add ${file.name}?`,
+      body: 'Adds its transactions, categories, rules and accounts to what you have. Nothing is deleted, and transactions you already have are skipped.',
+      confirmLabel: 'Add data',
+    });
+    if (!ok) return;
+    setBusy(true);
+    try {
+      const r = await mergeBackup(JSON.parse(await file.text()));
+      const parts = [
+        `${r.transactions} transactions`,
+        r.categories && `${r.categories} categories`,
+        r.rules && `${r.rules} rules`,
+        r.accounts && `${r.accounts} accounts`,
+      ].filter(Boolean);
+      toast(`Added ${parts.join(', ')}${r.skippedTransactions ? ` · skipped ${r.skippedTransactions} you already had` : ''}`);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'That file couldn’t be added.');
     } finally {
       setBusy(false);
     }
@@ -210,6 +236,27 @@ export function SettingsPage() {
           <Button icon="download" onClick={handleExport}>
             Export
           </Button>
+        </div>
+        <div className="settings-row">
+          <div>
+            <p className="settings-row__title">Add from a file</p>
+            <p className="muted">Merges a data file into what you have. Nothing is deleted; duplicates are skipped.</p>
+          </div>
+          <Button icon="upload" onClick={() => mergeRef.current?.click()} loading={busy}>
+            Add from file
+          </Button>
+          <input
+            ref={mergeRef}
+            type="file"
+            accept=".json,application/json"
+            className="sr-only"
+            tabIndex={-1}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void handleMerge(file);
+              e.target.value = '';
+            }}
+          />
         </div>
         <div className="settings-row">
           <div>
