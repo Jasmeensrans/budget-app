@@ -78,7 +78,7 @@ export function TransactionForm({ initial, onSave, onDelete, onClose }: Transact
   /** Always USD. An unchanged CAD amount keeps the conversion it was saved with. */
   const usd = currency === 'USD' ? signed : unchangedOriginal ? initial!.amountCents : Math.round(signed * settings.cadToUsd);
   const rule = description.trim()
-    ? findMatchingRule(rules, { description, rawDescription: initial?.rawDescription, amountCents: usd })
+    ? findMatchingRule(rules, { description, rawDescription: initial?.rawDescription, amountCents: usd, date })
     : null;
   const effectiveCategoryId = picked ? categoryId : (rule?.categoryId ?? categoryId);
   const ruleApplied = !picked && !!rule;

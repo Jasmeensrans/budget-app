@@ -1,4 +1,5 @@
 import type { Cents, Rule, RuleCondition } from '../data/types';
+import { formatShortDate } from '../lib/dates';
 import { formatCents } from '../lib/money';
 
 /**
@@ -11,6 +12,8 @@ export interface Matchable {
   /** The bank's original text. Description conditions match either this or the clean name. */
   rawDescription?: string | null;
   amountCents: Cents;
+  /** Needed for date-range conditions; without it they never match. */
+  date?: string;
 }
 
 export function conditionMatches(c: RuleCondition, tx: Matchable): boolean {
@@ -24,6 +27,9 @@ export function conditionMatches(c: RuleCondition, tx: Matchable): boolean {
       if (c.op === 'starts') return d.startsWith(v);
       return d === v;
     });
+  }
+  if (c.field === 'date') {
+    return !!tx.date && tx.date >= c.from && tx.date <= c.to;
   }
   const a = Math.abs(tx.amountCents);
   switch (c.op) {
@@ -56,6 +62,10 @@ export function describeCondition(c: RuleCondition): string {
   if (c.field === 'description') {
     const op = c.op === 'contains' ? 'contains' : c.op === 'starts' ? 'starts with' : 'is exactly';
     return `description ${op} “${c.value}”`;
+  }
+  if (c.field === 'date') {
+    const year = c.to.slice(0, 4);
+    return `date is ${formatShortDate(c.from)} – ${formatShortDate(c.to)}, ${year}`;
   }
   const money = (v: Cents) => formatCents(v);
   switch (c.op) {

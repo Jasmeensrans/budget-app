@@ -60,7 +60,7 @@ function planRows(
   return parsed.map((row) => {
     const amountCents = currency === 'CAD' ? Math.round(row.amountCents * cadToUsd) : row.amountCents;
     const description = cleanDescription(row.rawDescription);
-    const rule = findMatchingRule(rules, { description, rawDescription: row.rawDescription, amountCents });
+    const rule = findMatchingRule(rules, { description, rawDescription: row.rawDescription, amountCents, date: row.date });
 
     let categoryId: string | null = null;
     let source: CategorySource = null;

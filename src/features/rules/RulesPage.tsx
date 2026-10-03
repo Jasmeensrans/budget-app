@@ -130,7 +130,7 @@ export function RulesPage() {
 
 // ---------- form ----------
 
-type DraftField = 'description' | 'amount';
+type DraftField = 'description' | 'amount' | 'date';
 type DraftOp = 'contains' | 'starts' | 'is' | 'equals' | 'greaterThan' | 'lessThan' | 'between';
 
 interface DraftCondition {
@@ -145,6 +145,7 @@ const DESCRIPTION_OPS: Array<[DraftOp, string]> = [
   ['starts', 'starts with'],
   ['is', 'is exactly'],
 ];
+const DATE_OPS: Array<[DraftOp, string]> = [['between', 'is between']];
 const AMOUNT_OPS: Array<[DraftOp, string]> = [
   ['equals', 'is exactly'],
   ['greaterThan', 'is over'],
@@ -154,6 +155,7 @@ const AMOUNT_OPS: Array<[DraftOp, string]> = [
 
 function toDraft(c: RuleCondition): DraftCondition {
   if (c.field === 'description') return { field: 'description', op: c.op, value: c.value, value2: '' };
+  if (c.field === 'date') return { field: 'date', op: 'between', value: c.from, value2: c.to };
   return {
     field: 'amount',
     op: c.op,
@@ -168,6 +170,11 @@ function fromDraft(d: DraftCondition): RuleCondition | string {
     const value = d.value.trim().toLowerCase();
     if (!value) return 'Type the text to look for';
     return { field: 'description', op: d.op as 'contains' | 'starts' | 'is', value };
+  }
+  if (d.field === 'date') {
+    if (!d.value || !d.value2) return 'Pick both dates';
+    const [from, to] = d.value <= d.value2 ? [d.value, d.value2] : [d.value2, d.value];
+    return { field: 'date', op: 'between', from, to };
   }
   const a = parseAmountToCents(d.value);
   if (a === null) return 'Enter an amount like 15.99';
@@ -254,11 +261,17 @@ function RuleForm({ initial, onDone }: { initial?: Rule; onDone: () => void }) {
                     value={d.field}
                     onChange={(e) => {
                       const field = e.target.value as DraftField;
-                      updateDraft(i, { field, op: field === 'description' ? 'contains' : 'equals', value: '', value2: '' });
+                      updateDraft(i, {
+                        field,
+                        op: field === 'description' ? 'contains' : field === 'date' ? 'between' : 'equals',
+                        value: '',
+                        value2: '',
+                      });
                     }}
                   >
                     <option value="description">Description</option>
                     <option value="amount">Amount</option>
+                    <option value="date">Date</option>
                   </select>
                   <label className="sr-only" htmlFor={`${id}-op-${i}`}>
                     Match
@@ -269,7 +282,7 @@ function RuleForm({ initial, onDone }: { initial?: Rule; onDone: () => void }) {
                     value={d.op}
                     onChange={(e) => updateDraft(i, { op: e.target.value as DraftOp })}
                   >
-                    {(d.field === 'description' ? DESCRIPTION_OPS : AMOUNT_OPS).map(([value, label]) => (
+                    {(d.field === 'description' ? DESCRIPTION_OPS : d.field === 'date' ? DATE_OPS : AMOUNT_OPS).map(([value, label]) => (
                       <option key={value} value={value}>
                         {label}
                       </option>
@@ -286,7 +299,25 @@ function RuleForm({ initial, onDone }: { initial?: Rule; onDone: () => void }) {
                   )}
                 </div>
                 <div className="rule-condition__values">
-                  {d.field === 'description' ? (
+                  {d.field === 'date' ? (
+                    <>
+                      <input
+                        type="date"
+                        className={cx('input', error && 'input--invalid')}
+                        aria-label="From"
+                        value={d.value}
+                        onChange={(e) => updateDraft(i, { value: e.target.value })}
+                      />
+                      <span className="muted">to</span>
+                      <input
+                        type="date"
+                        className="input"
+                        aria-label="To"
+                        value={d.value2}
+                        onChange={(e) => updateDraft(i, { value2: e.target.value })}
+                      />
+                    </>
+                  ) : d.field === 'description' ? (
                     <input
                       className={cx('input', error && 'input--invalid')}
                       aria-label="Text to look for"

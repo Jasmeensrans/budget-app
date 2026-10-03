@@ -146,7 +146,9 @@ export interface Contribution extends DocMeta {
 export type RuleCondition =
   | { field: 'description'; op: 'contains' | 'starts' | 'is'; value: string }
   | { field: 'amount'; op: 'equals' | 'greaterThan' | 'lessThan'; valueCents: Cents }
-  | { field: 'amount'; op: 'between'; valueCents: Cents; value2Cents: Cents };
+  | { field: 'amount'; op: 'between'; valueCents: Cents; value2Cents: Cents }
+  /** Inclusive date range, e.g. a trip: everything spent from `from` to `to`. */
+  | { field: 'date'; op: 'between'; from: ISODate; to: ISODate };
 
 export interface Rule extends DocMeta {
   /** Lower runs first; the first matching rule wins. */
