@@ -29,7 +29,8 @@ export function SettingsPage() {
   const categories = useCollection('categories');
   const accounts = useCollection('accounts');
   const settings = useSettings();
-  const [busy, setBusy] = useState(false);
+  /** Which action is running, so only its button shows a spinner. */
+  const [busy, setBusy] = useState<'move' | 'merge' | 'restore' | 'delete' | null>(null);
   const restoreRef = useRef<HTMLInputElement>(null);
   const mergeRef = useRef<HTMLInputElement>(null);
   const auth = useAuth();
@@ -50,7 +51,7 @@ export function SettingsPage() {
       confirmLabel: 'Move data',
     });
     if (!ok) return;
-    setBusy(true);
+    setBusy('move');
     try {
       const result = await copyLocalDataToCloud();
       toast(`Moved ${result.transactions} transactions, ${result.categories} categories and ${result.rules} rules to your account`);
@@ -58,7 +59,7 @@ export function SettingsPage() {
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Couldn’t copy the data.');
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
@@ -88,14 +89,14 @@ export function SettingsPage() {
       danger: true,
     });
     if (!ok) return;
-    setBusy(true);
+    setBusy('restore');
     try {
       await restoreBackup(JSON.parse(await file.text()));
       toast(`Restored ${file.name}`);
     } catch (err) {
       toast(err instanceof Error ? err.message : 'That file couldn’t be restored.');
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
@@ -106,7 +107,7 @@ export function SettingsPage() {
       confirmLabel: 'Add data',
     });
     if (!ok) return;
-    setBusy(true);
+    setBusy('merge');
     try {
       const r = await mergeBackup(JSON.parse(await file.text()));
       const parts = [
@@ -119,7 +120,7 @@ export function SettingsPage() {
     } catch (err) {
       toast(err instanceof Error ? err.message : 'That file couldn’t be added.');
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
@@ -131,9 +132,9 @@ export function SettingsPage() {
       danger: true,
     });
     if (!ok) return;
-    setBusy(true);
+    setBusy('delete');
     await deleteAllData();
-    setBusy(false);
+    setBusy(null);
     toast('All data deleted. Starter categories are back.');
   }
 
@@ -161,7 +162,7 @@ export function SettingsPage() {
                   {localCounts.rules} rules saved from before you signed in.
                 </p>
               </div>
-              <Button variant="primary" icon="upload" onClick={handleCopyLocal} loading={busy}>
+              <Button variant="primary" icon="upload" onClick={handleCopyLocal} loading={busy === 'move'} disabled={busy !== null}>
                 Move data
               </Button>
             </div>
@@ -242,7 +243,7 @@ export function SettingsPage() {
             <p className="settings-row__title">Add from a file</p>
             <p className="muted">Merges a data file into what you have. Nothing is deleted; duplicates are skipped.</p>
           </div>
-          <Button icon="upload" onClick={() => mergeRef.current?.click()} loading={busy}>
+          <Button icon="upload" onClick={() => mergeRef.current?.click()} loading={busy === 'merge'} disabled={busy !== null}>
             Add from file
           </Button>
           <input
@@ -263,7 +264,7 @@ export function SettingsPage() {
             <p className="settings-row__title">Restore a backup</p>
             <p className="muted">Replaces everything here with a backup file, including categories, rules and accounts.</p>
           </div>
-          <Button icon="upload" onClick={() => restoreRef.current?.click()} loading={busy}>
+          <Button icon="upload" onClick={() => restoreRef.current?.click()} loading={busy === 'restore'} disabled={busy !== null}>
             Restore
           </Button>
           <input
@@ -284,7 +285,7 @@ export function SettingsPage() {
             <p className="settings-row__title">Delete all data</p>
             <p className="muted">Clears everything on this device.</p>
           </div>
-          <Button variant="danger" onClick={handleDeleteAll} loading={busy}>
+          <Button variant="danger" onClick={handleDeleteAll} loading={busy === 'delete'} disabled={busy !== null}>
             Delete all
           </Button>
         </div>

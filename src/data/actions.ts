@@ -339,30 +339,38 @@ export async function mergeBackup(backup: unknown): Promise<MergeResult> {
 
   // Categories
   const categoryIds = new Map<string, string>();
-  let categoriesAdded = 0;
+  const newCategories: Category[] = [];
   for (const c of col.categories ?? []) {
     const existing = byName(current('categories'), c.name);
     if (existing) categoryIds.set(c.id, existing.id);
-    else {
-      const created = await repo.create('categories', { name: c.name, color: c.color, icon: c.icon, kind: c.kind ?? 'spending' });
-      categoryIds.set(c.id, created.id);
-      categoriesAdded++;
-    }
+    else if (!byName(newCategories, c.name)) newCategories.push(c);
   }
+  if (newCategories.length) {
+    const created = await repo.createMany(
+      'categories',
+      newCategories.map((c) => ({ name: c.name, color: c.color, icon: c.icon, kind: c.kind ?? 'spending' })),
+    );
+    newCategories.forEach((c, i) => categoryIds.set(c.id, created[i].id));
+  }
+  for (const c of col.categories ?? []) {
+    if (!categoryIds.has(c.id)) categoryIds.set(c.id, categoryIds.get(byName(newCategories, c.name)!.id)!);
+  }
+  const categoriesAdded = newCategories.length;
 
   // Rules
   const ruleKey = (r: Pick<Rule, 'conditions' | 'categoryId'>) => JSON.stringify([r.categoryId, r.conditions]);
   const existingRules = current('rules');
   const known = new Set(existingRules.map(ruleKey));
-  const createdRules: Rule[] = [];
+  const newRules: NewDoc<Rule>[] = [];
   for (const r of [...(col.rules ?? [])].sort((a, b) => a.order - b.order)) {
     const categoryId = categoryIds.get(r.categoryId);
     if (!categoryId) continue;
     const candidate = { conditions: r.conditions, categoryId };
     if (known.has(ruleKey(candidate))) continue;
     known.add(ruleKey(candidate));
-    createdRules.push(await repo.create('rules', { ...candidate, order: r.order }));
+    newRules.push({ ...candidate, order: r.order });
   }
+  const createdRules: Rule[] = newRules.length ? await repo.createMany('rules', newRules) : [];
   if (createdRules.length) {
     const all = sortRules([...existingRules.filter((r) => !createdRules.some((c) => c.id === r.id)), ...createdRules]);
     await repo.updateMany(
